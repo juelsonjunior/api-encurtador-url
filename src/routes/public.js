@@ -1,6 +1,5 @@
 import express from 'express';
 import { generateShortUrl } from '../utils/short-url.js';
-import { isvalidUrl } from '../utils/url-valid.js';
 import { PrismaClient } from '@prisma/client';
 import nodemailer from 'nodemailer';
 
@@ -12,7 +11,8 @@ router.get('/list-url', async (req, res) => {
         const listUrls = await prisma.urls.findMany();
         res.status(200).json(listUrls);
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao listar urls', error });
+        res.status(500).json({ message: 'Erro ao listar urls' });
+        console.log(error);
     }
 });
 
@@ -20,6 +20,7 @@ router.post('/short-url', async (req, res) => {
     try {
         const { url, codPerson } = req.body;
         const generateShort = codPerson != '' ? codPerson : generateShortUrl();
+        let urlWithHttp = url;
 
         if (url == '') {
             return res
@@ -27,30 +28,13 @@ router.post('/short-url', async (req, res) => {
                 .json({ message: 'Precisa preencher o campo URL' });
         }
 
-        const validURL = isvalidUrl(url);
-
-        if (!validURL) {
-            return res
-                .status(400)
-                .json({ message: 'URl invalida! tente uma url valida' });
-        }
-
-        const urlDuplicated = await prisma.urls.findMany({
-            where: {
-                originUrl: url,
-            },
-        });
-
-        if (urlDuplicated.length > 0) {
-            return res.status(200).json({
-                message: `Url já foi encurtada link encurtado abaixo`,
-                dataDuplicated: `${process.env.DOMAIN}${urlDuplicated[0].shortUrl}`,
-            });
+        if (!urlWithHttp.includes('https://')) {
+            urlWithHttp = `https://${url}`;
         }
 
         const insertUrl = await prisma.urls.create({
             data: {
-                originUrl: url,
+                originUrl: urlWithHttp,
                 shortUrl: generateShort,
                 acessCount: 0,
             },
@@ -64,7 +48,8 @@ router.post('/short-url', async (req, res) => {
             message: `${process.env.DOMAIN}${insertUrl.shortUrl}`,
         });
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao encurtar a url', error });
+        res.status(500).json({ message: 'Erro ao encurtar a url' });
+        console.log(error);
     }
 });
 
@@ -101,14 +86,15 @@ router.get('/:url', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             message: 'Error ao contar os acessos a url:',
-            error,
         });
+        console.log(error);
     }
 });
 
 router.post('/estatistic-url', async (req, res) => {
     try {
         const { url } = req.body;
+        let urlWithHttp = url;
 
         if (url == '') {
             return res
@@ -116,17 +102,13 @@ router.post('/estatistic-url', async (req, res) => {
                 .json({ message: 'Precisa preencher o campo URL' });
         }
 
-        const validURL = isvalidUrl(url);
-
-        if (!validURL) {
-            return res
-                .status(400)
-                .json({ message: 'URl invalida! tente uma url valida' });
+        if (!urlWithHttp.includes('https://')) {
+            urlWithHttp = `https://${url}`;
         }
 
         const estatistic = await prisma.urls.findMany({
             where: {
-                shortUrl: url.split('/')[3],
+                shortUrl: urlWithHttp.split('/')[3],
             },
         });
 
@@ -140,8 +122,8 @@ router.post('/estatistic-url', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             message: 'Erro ao verificar estatistica da url',
-            error,
         });
+        console.log(error);
     }
 });
 
@@ -193,7 +175,8 @@ router.post('/contact-send', async (req, res) => {
             message: `Mensagem enviada com sucesso`,
         });
     } catch (error) {
-        res.status(500).json({ message: `Falha ao enviar email ${error}` });
+        res.status(500).json({ message: `Falha ao enviar email` });
+        console.log(error);
     }
 });
 export default router;
