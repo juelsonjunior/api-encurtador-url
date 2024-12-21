@@ -71,7 +71,7 @@ router.get('/:url', async (req, res) => {
                 id: searchUrl[0].id,
             },
             data: {
-                acessCount: + 1,
+                acessCount: { increment: 1 },
             },
         });
 
