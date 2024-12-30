@@ -2,5 +2,5 @@
 
 Para iniciar o projecto rode os comandos abaixo
 
-npm install
+npm install<br>
 npm start
